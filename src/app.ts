@@ -3,17 +3,13 @@
 
 import express, { Request, Response } from 'express';
 import { createServer } from "http";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import { ClassificationType } from 'typescript';
 
 const app = express();
 const port = 9001;
 const httpServer = createServer(app);
 const io = new Server(httpServer, { /* options */ });
-
-
-// tictactoe board or the 'serverGrid'
-let serverGrid: string[][];
 
 enum Turn { // list of items
   AI,
@@ -26,95 +22,129 @@ interface BestMove {
   col: number;
 }
 
- // SERVER START
+class Game {
+  private serverGrid;
+  // user is hardcoded to 'O'
+  private userMark = 'O';
+  private AiMark = 'X';
+  private curTurn = Turn.USER;
+  private userId: string;
+  private socket: Socket; // socket is variable name that stores 'Socket' which is a type, socket is basically a phoneline between user and server
 
 
-// connection is received here through the socket
-io.on("connection", function (socket) {
-  serverGrid = [
-    ['-','-','-'],
-    ['-','-','-'],
-    ['-','-','-']
-  ];
-  console.log("Someone just connected!");
-  socket.emit('game', serverGrid); // 'game' is the name of the event, grid is the value returned
+  // passing socket as the argument to make user identification possible for the object
+  // and to communicate with the user
+  constructor (socket: Socket) {
+    this.userId = socket.id;
+    this.socket = socket;
+    this.serverGrid = [
+      ['-','-','-'],
+      ['-','-','-'],
+      ['-','-','-']
+    ];
+    this.socket.emit('game', this.serverGrid); // 'game' is the name of the event, grid is the value returned
 
-  // Echo back messages from the client
-  // Echo server
-  // if message is received from postman then this is executed
+    // if the server receives a message for the event 'game' then this will be executed
+    // this is executed when the user specifies the event 'game'
+    this.socket.on('game', (message: string) => this.playGame(message));
+  }
 
-  // if event name is not defined in postman, then 'message' is the default 'event name'
-  socket.on('message', function (msg) { // msg contains the content of the data sent to server. It can be 'hi' hello anything.
-    console.log("Got message: " + msg);
-    socket.emit('message', msg); // 'emit' used to send data back to the user
-  });
-
-  // if the server receives a message for the event 'game' then this will be executed
-  // this is executed when the user specifies the event 'game'
-  socket.on('game', function (message) {
+  // playGame is the function that contains all the function logic
+  private playGame(message: string) : void {
 
     // message is the modified grid received from the user
-    message = JSON.parse(message) // converts string into array
+    const userGrid: string[][] = JSON.parse(message) // converts string into array
 
-    console.log("Game message: " + message);
+    console.log(userGrid,this.serverGrid,this.socket,this.userId);
 
     // check if the received message contains 'grid' or not
     // check if move is valid or not - continous moves, wrong symbol used, overwriting
-    if(!GameUtils.checkValidity(message)) {
-      socket.emit('game',"Invalid Move");
-      socket.disconnect();
+    if(!GameUtils.checkValidity(userGrid,this.serverGrid)) {
+      this.socket.emit('game',"Invalid Move");
+      this.socket.disconnect();
     }
 
     // if valid, update the grid on the server
-    serverGrid = message;
+    this.serverGrid = userGrid;
 
 
     // check for win, loss
-    let aiWin = GameUtils.checkWin(serverGrid,'X');
-    let userWin = GameUtils.checkWin(serverGrid, 'O');
+    let aiWin = GameUtils.checkWin(this.serverGrid,'X');
+    let userWin = GameUtils.checkWin(this.serverGrid, 'O');
     if((aiWin && !userWin) || (!aiWin && userWin) ) {
-      socket.emit('game', "GAME OVER");
-      socket.disconnect();
+      this.socket.emit('game', "GAME OVER");
+      this.socket.disconnect();
     }
 
     // check for draw
-    if (GameUtils.checkDraw(serverGrid)) {
-      socket.emit('game', "DRAW");
-      socket.disconnect();
+    if (GameUtils.checkDraw(this.serverGrid)) {
+      this.socket.emit('game', "DRAW");
+      this.socket.disconnect();
     }
 
     // AI will make its move
     // assume user is always 'O' and AI is 'X'
     // after AI makes its move, return the grid
 
-    const aiMove: BestMove = AiUtils.findBestMove(serverGrid);
-    serverGrid[aiMove.row][aiMove.col] = 'X';
+    const aiMove: BestMove = AiUtils.findBestMove(this.serverGrid);
+    this.serverGrid[aiMove.row][aiMove.col] = 'X';
 
     // check for win, loss
-    aiWin = GameUtils.checkWin(serverGrid,'X');
-    userWin = GameUtils.checkWin(serverGrid, 'O');
+    aiWin = GameUtils.checkWin(this.serverGrid,'X');
+    userWin = GameUtils.checkWin(this.serverGrid, 'O');
     if((aiWin && !userWin) || (!aiWin && userWin) ) {
-      socket.emit('game', "GAME OVER");
-      socket.emit('game', serverGrid); // return the grid to the user
-      socket.disconnect();
+      this.socket.emit('game', "GAME OVER");
+      this.socket.emit('game', this.serverGrid); // return the grid to the user
+      this.socket.disconnect();
     }
 
     // check for draw
-    if (GameUtils.checkDraw(serverGrid)) {
-      socket.emit('game', "DRAW");
-      socket.emit('game', serverGrid); // return the grid to the user
-      socket.disconnect();
+    if (GameUtils.checkDraw(this.serverGrid)) {
+      this.socket.emit('game', "DRAW");
+      this.socket.emit('game', this.serverGrid); // return the grid to the user
+      this.socket.disconnect();
     }
 
-    socket.emit('game', serverGrid); // if there is no interruption, game continues
+    this.socket.emit('game', this.serverGrid); // if there is no interruption, game continues
+  }
+}
+
+// links socketid to game (the object) ('game' is the object of each user game)
+const userGames = new Map<string, Game>();
+
+
+
+ // SERVER START
+
+
+// connection is received here through the socket
+io.on("connection", function (socket) {
+  // Echo server
+  // Echo back messages from the client
+  // if message is received from postman then this is executed
+  // if event name is not defined in postman, then 'message' is the default 'event name'
+  socket.on('message', function (msg) { // msg contains the content of the data sent to server. It can be 'hi' hello anything.
+    console.log("Got message: " + msg);
+    socket.emit('message', msg); // 'emit' used to send data back to the user
   });
 
+
+
+  // someone connected
+  console.log(socket.id);
+  console.log("Someone just connected!");
+  const game = new Game(socket);
+  userGames.set(socket.id,game); // maps the socketid to game (object)
 });
 
 
 
 class GameUtils {
-  public static checkValidity(userGrid : string[][]) : boolean {
+  public static checkValidity(userGrid : string[][], serverGrid: string[][]) : boolean {
+    console.log(userGrid,serverGrid);
+    // userGrid - latest updated
+    // serverGrid - last move
+
     // validate grid, means check if the move is valid or not
   
     // two inputs - one grid from user and one grid inside the server
