@@ -12,6 +12,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer, { /* options */ });
 
 enum Turn { // list of items
+  //  enums improves code readability and maintainability by providing descriptive names for these values
   AI,
   USER
 }
@@ -24,38 +25,42 @@ interface BestMove {
 
 class Game {
   private serverGrid;
-  // user is hardcoded to 'O'
-  private userMark = 'O';
+  private userMark = 'O'; // user is hardcoded to 'O'
   private AiMark = 'X';
-  private curTurn = Turn.USER;
+  private curTurn = Turn.USER; // first turn will be of the user
   private userId: string;
-  private socket: Socket; // socket is variable name that stores 'Socket' which is a type, socket is basically a phoneline between user and server
+  private socket: Socket; // socket is variable name that stores 'Socket' ('Socket' is a type), socket is basically a phoneline between user and server
 
 
   // passing socket as the argument to make user identification possible for the object
   // and to communicate with the user
   constructor (socket: Socket) {
-    this.userId = socket.id;
+    this.userId = socket.id; // uniquely generated id given to a particular useer
     this.socket = socket;
     this.serverGrid = [
       ['-','-','-'],
       ['-','-','-'],
       ['-','-','-']
     ];
+
+    // sent to the user immediately after serverGrid is declared
     this.socket.emit('game', this.serverGrid); // 'game' is the name of the event, grid is the value returned
+    // .emit sends a message to all the clients connected to it, basically serverGrid is sent to the user when the user connects to the 'game' event
 
     // if the server receives a message for the event 'game' then this will be executed
-    // this is executed when the user specifies the event 'game'
+    // this is executed when the user specifies the event 'game' from postman
     this.socket.on('game', (message: string) => this.playGame(message));
+    // socket.on is used to start listening for socket events when a particular event is started
   }
 
-  // playGame is the function that contains all the function logic
+  // playGame is the function that contains all the game logic
   private playGame(message: string) : void {
 
     // message is the modified grid received from the user
+    // networks sends data as a string or bytes, need to convert it to a readable form through JSON
     const userGrid: string[][] = JSON.parse(message) // converts string into array
 
-    console.log(userGrid,this.serverGrid,this.socket,this.userId);
+    // console.log(userGrid,this.serverGrid,this.socket,this.userId);
 
     // check if the received message contains 'grid' or not
     // check if move is valid or not - continous moves, wrong symbol used, overwriting
@@ -69,10 +74,10 @@ class Game {
 
 
     // check for win, loss
-    let aiWin = GameUtils.checkWin(this.serverGrid,'X');
+    let aiWin = GameUtils.checkWin(this.serverGrid,'X'); // checkWin function is called from GameUtils class, since the function is static then no need to create an object
     let userWin = GameUtils.checkWin(this.serverGrid, 'O');
     if((aiWin && !userWin) || (!aiWin && userWin) ) {
-      this.socket.emit('game', "GAME OVER");
+      this.socket.emit('game', "GAME OVER"); // give out message "GAME OVER" for the event 'game'
       this.socket.disconnect();
     }
 
@@ -86,13 +91,14 @@ class Game {
     // assume user is always 'O' and AI is 'X'
     // after AI makes its move, return the grid
 
-    const aiMove: BestMove = AiUtils.findBestMove(this.serverGrid);
+    const aiMove: BestMove = AiUtils.findBestMove(this.serverGrid); // aiMove is a variable of type 'BestMove', so it can access all the features inside it
+    // Function 'findBestMove' from Aiutils class is called
     this.serverGrid[aiMove.row][aiMove.col] = 'X';
 
     // check for win, loss
     aiWin = GameUtils.checkWin(this.serverGrid,'X');
     userWin = GameUtils.checkWin(this.serverGrid, 'O');
-    if((aiWin && !userWin) || (!aiWin && userWin) ) {
+    if ((aiWin && !userWin) || (!aiWin && userWin)) {
       this.socket.emit('game', "GAME OVER");
       this.socket.emit('game', this.serverGrid); // return the grid to the user
       this.socket.disconnect();
@@ -114,10 +120,16 @@ const userGames = new Map<string, Game>();
 
 
 
- // SERVER START
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
+
+
+
+// SERVER START
 
 // connection is received here through the socket
+// when 'connection' event is received execute the function
 io.on("connection", function (socket) {
   // Echo server
   // Echo back messages from the client
@@ -126,6 +138,7 @@ io.on("connection", function (socket) {
   socket.on('message', function (msg) { // msg contains the content of the data sent to server. It can be 'hi' hello anything.
     console.log("Got message: " + msg);
     socket.emit('message', msg); // 'emit' used to send data back to the user
+    // msg will be sent to the user connected through the event 'message'
   });
 
 
@@ -133,9 +146,11 @@ io.on("connection", function (socket) {
   // someone connected
   console.log(socket.id);
   console.log("Someone just connected!");
-  const game = new Game(socket);
+  const game = new Game(socket); // game is a variable of type 'Game', game is an instance of 'Game' class
   userGames.set(socket.id,game); // maps the socketid to game (object)
 });
+
+// everytime a new user connects, a user connects through a socket and each socket has a unique id
 
 
 
@@ -269,8 +284,13 @@ class GameUtils {
 }
 
 class AiUtils {
+  // all the AI related functions are clubbed inside this class
+
   // static - no need make an object for a class
   private static AImove(grid : string[][], player: boolean) : number {
+    // this is only for the server, no need for the user to see this
+
+
     // minmax
     // if isTerminalState(grid) --> return value of state
     /* 
@@ -283,6 +303,8 @@ class AiUtils {
       for possibleState in nextStates(grid):
         value = min(value, AImove(possibleState, player * -1))
   */
+
+
   console.log('player: ', player);
     if (GameUtils.checkWin(grid, 'X')) {
       console.log('AI Wins', grid);
