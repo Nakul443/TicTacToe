@@ -118,12 +118,21 @@ npm start
 ```
 TicTacToe/
 ├── src/
-│   └── app.ts          # Main server file with game logic
+│   ├── app.ts          # HTTP server + Socket.IO bootstrap
+│   ├── server.ts       # (If used) alternative server entry
+│   ├── sockets/
+│   │   └── gameSocket.ts  # Socket.IO event handlers for the game
+│   ├── auth/           # Authentication-related logic (if implemented)
+│   ├── game/           # Core game domain logic (e.g., Game, GameUtils, AiUtils)
+│   ├── middleware/     # Express middlewares (logging, auth, etc.)
+│   ├── routes/         # HTTP route handlers
+│   └── utils/          # Shared utilities/helpers
 ├── dist/               # Compiled JavaScript output
 ├── node_modules/       # Dependencies
 ├── package.json        # Project configuration and dependencies
+├── package-lock.json   # Locked dependency tree
 ├── tsconfig.json       # TypeScript configuration
-└── README.md           # This file
+└── README.md           # Project documentation
 ```
 
 ## Game Classes

@@ -1,4 +1,4 @@
-import { GameUtils } from "./gameutils";
+import { GameUtils } from "./gameUtils";
 
 export interface BestMove {
   row: number;
