@@ -2,10 +2,6 @@
 
 A real-time Tic-Tac-Toe game server built with TypeScript, Express.js, and Socket.IO. Play against an intelligent AI opponent that uses the Minimax algorithm for optimal gameplay.
 
-## Demo
-
-Watch the demo video: https://drive.google.com/file/d/1_48YbCJA-IEyj18fz84pRxg9APxwj1qC/view?usp=sharing
-
 ## Features
 
 - 🎮 **Real-time multiplayer gameplay** using WebSocket connections
