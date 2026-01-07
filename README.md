@@ -43,6 +43,14 @@ Before you begin, ensure you have the following installed:
    npm install
    ```
 
+### Quick start
+
+Run everything locally in one go:
+```bash
+npm install
+npm start
+```
+
 ## Running the Server
 
 1. **Start the server**
@@ -55,6 +63,10 @@ Before you begin, ensure you have the following installed:
    - Start the server on port `9001`
 
 2. **The server is now running and ready to accept WebSocket connections**
+
+### Configuration
+
+- The server binds to port `9001` as defined in `src/app.ts`. Update the `port` constant there if you need a different port.
 
 ## How It Works
 
@@ -135,6 +147,11 @@ AI implementation using Minimax algorithm:
 - `AImove()`: Recursive Minimax implementation
 
 ## Development
+
+### Available npm scripts
+
+- `npm start`: Compile TypeScript and start the server (`npx tsc; node dist/app.js`).
+- `npm test`: Placeholder script (currently exits with an error).
 
 ### Building the Project
 
